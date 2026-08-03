@@ -5,3 +5,4 @@ fly
 fling
 esp
 скрипт универсальный
+ссылка: loadstring(game:HttpGet("https://raw.githubusercontent.com/Halturaaa/haltura-hack-roblox/refs/heads/main/halturahack.lua"))()
