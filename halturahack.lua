@@ -1,4 +1,4 @@
--- haltura hack (финальный, с рабочим флингом) by SWILL
+-- haltura hack (полный, с Teleport, исправленным SpeedHack) by SWILL
 local player = game.Players.LocalPlayer
 local coreGui = game:GetService("CoreGui")
 local players = game:GetService("Players")
@@ -8,7 +8,6 @@ local debris = game:GetService("Debris")
 local guiService = game:GetService("GuiService")
 local camera = workspace.CurrentCamera
 
--- GUI (сокращаю вывод, но оставляю полную структуру с вкладками)
 local gui = Instance.new("ScreenGui")
 gui.Name = "haltura_hack"
 gui.Parent = coreGui
@@ -24,7 +23,7 @@ toggleBtn.BorderSizePixel = 0
 toggleBtn.Parent = gui
 
 local menu = Instance.new("Frame")
-menu.Size = UDim2.new(0, 280, 0, 380)
+menu.Size = UDim2.new(0, 280, 0, 420) -- чуть выше для трёх вкладок
 menu.BackgroundColor3 = Color3.fromRGB(30,30,30)
 menu.BorderSizePixel = 1
 menu.BorderColor3 = Color3.fromRGB(100,100,100)
@@ -41,88 +40,75 @@ title.BackgroundTransparency = 1
 title.Font = Enum.Font.GothamBold
 title.Parent = menu
 
--- Вкладки
+-- Вкладки (теперь три)
 local tabContainer = Instance.new("Frame")
 tabContainer.Size = UDim2.new(1,0,0,30)
 tabContainer.Position = UDim2.new(0,0,0,30)
 tabContainer.BackgroundTransparency = 1
 tabContainer.Parent = menu
 
-local tabBase = Instance.new("TextButton")
-tabBase.Size = UDim2.new(0.5,-1,1,-2)
-tabBase.Position = UDim2.new(0,1,0,1)
-tabBase.Text = "Основа"
-tabBase.TextSize = 16
-tabBase.BackgroundColor3 = Color3.fromRGB(80,80,80)
-tabBase.TextColor3 = Color3.fromRGB(255,255,255)
-tabBase.BorderSizePixel = 0
-tabBase.Parent = tabContainer
+local function createTab(text, x)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.333, -1, 1, -2)
+    btn.Position = UDim2.new(x, 1, 0, 1)
+    btn.Text = text
+    btn.TextSize = 14
+    btn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    btn.BorderSizePixel = 0
+    btn.Parent = tabContainer
+    return btn
+end
 
-local tabFling = Instance.new("TextButton")
-tabFling.Size = UDim2.new(0.5,-1,1,-2)
-tabFling.Position = UDim2.new(0.5,1,0,1)
-tabFling.Text = "Fling"
-tabFling.TextSize = 16
-tabFling.BackgroundColor3 = Color3.fromRGB(60,60,60)
-tabFling.TextColor3 = Color3.fromRGB(255,255,255)
-tabFling.BorderSizePixel = 0
-tabFling.Parent = tabContainer
+local tabBase = createTab("Основа", 0)
+local tabFling = createTab("Fling", 0.333)
+local tabTeleport = createTab("Телепорт", 0.666)
 
+-- Контейнер контента
 local contentContainer = Instance.new("Frame")
 contentContainer.Size = UDim2.new(1,0,1,-60)
 contentContainer.Position = UDim2.new(0,0,0,60)
 contentContainer.BackgroundTransparency = 1
 contentContainer.Parent = menu
 
--- Основа
+-- === Вкладка "Основа" ===
 local baseFrame = Instance.new("Frame")
 baseFrame.Size = UDim2.new(1,0,1,0)
 baseFrame.BackgroundTransparency = 1
 baseFrame.Visible = true
 baseFrame.Parent = contentContainer
 
-local noclipBtn = Instance.new("TextButton")
-noclipBtn.Size = UDim2.new(0.8,0,0,30)
-noclipBtn.Position = UDim2.new(0.1,0,0.05,0)
-noclipBtn.Text = "NOCLIP: ВЫКЛ"
-noclipBtn.TextSize = 15
-noclipBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
-noclipBtn.TextColor3 = Color3.fromRGB(255,255,255)
-noclipBtn.BorderSizePixel = 0
-noclipBtn.Parent = baseFrame
+local function createBaseBtn(text, y)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.8,0,0,28)
+    btn.Position = UDim2.new(0.1,0,y,0)
+    btn.Text = text
+    btn.TextSize = 14
+    btn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    btn.BorderSizePixel = 0
+    btn.Parent = baseFrame
+    return btn
+end
 
-local espBtn = Instance.new("TextButton")
-espBtn.Size = UDim2.new(0.8,0,0,30)
-espBtn.Position = UDim2.new(0.1,0,0.2,0)
-espBtn.Text = "ESP: ВЫКЛ"
-espBtn.TextSize = 15
-espBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
-espBtn.TextColor3 = Color3.fromRGB(255,255,255)
-espBtn.BorderSizePixel = 0
-espBtn.Parent = baseFrame
+local noclipBtn = createBaseBtn("NOCLIP: ВЫКЛ", 0.02)
+local espBtn = createBaseBtn("ESP: ВЫКЛ", 0.13)
+local flyBtn = createBaseBtn("FLY: ВЫКЛ", 0.24)
+local speedBtn = createBaseBtn("SPEED: ВЫКЛ", 0.35)
 
-local flyBtn = Instance.new("TextButton")
-flyBtn.Size = UDim2.new(0.8,0,0,30)
-flyBtn.Position = UDim2.new(0.1,0,0.35,0)
-flyBtn.Text = "FLY: ВЫКЛ"
-flyBtn.TextSize = 15
-flyBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
-flyBtn.TextColor3 = Color3.fromRGB(255,255,255)
-flyBtn.BorderSizePixel = 0
-flyBtn.Parent = baseFrame
-
+-- Ползунок скорости полёта
 local speedLabel = Instance.new("TextLabel")
-speedLabel.Size = UDim2.new(0.8,0,0,20)
-speedLabel.Position = UDim2.new(0.1,0,0.5,0)
-speedLabel.Text = "Скорость: 50"
-speedLabel.TextSize = 14
+speedLabel.Size = UDim2.new(0.8,0,0,18)
+speedLabel.Position = UDim2.new(0.1,0,0.47,0)
+speedLabel.Text = "Скорость полёта: 50"
+speedLabel.TextSize = 13
 speedLabel.TextColor3 = Color3.fromRGB(200,200,200)
 speedLabel.BackgroundTransparency = 1
 speedLabel.Parent = baseFrame
 
 local speedSlider = Instance.new("Frame")
-speedSlider.Size = UDim2.new(0.8,0,0,10)
-speedSlider.Position = UDim2.new(0.1,0,0.57,0)
+speedSlider.Size = UDim2.new(0.8,0,0,8)
+speedSlider.Position = UDim2.new(0.1,0,0.54,0)
 speedSlider.BackgroundColor3 = Color3.fromRGB(50,50,50)
 speedSlider.BorderSizePixel = 0
 speedSlider.Parent = baseFrame
@@ -133,35 +119,89 @@ sliderFill.BackgroundColor3 = Color3.fromRGB(100,200,100)
 sliderFill.BorderSizePixel = 0
 sliderFill.Parent = speedSlider
 
-local speedValue = 50
-local draggingSlider = false
+local flySpeedValue = 50
+local draggingFly = false
 
 speedSlider.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        draggingSlider = true
+        draggingFly = true
     end
 end)
 
 userInput.InputChanged:Connect(function(input)
-    if not draggingSlider then return end
+    if not draggingFly then return end
     if input.UserInputType == Enum.UserInputType.MouseMovement then
         local pos = input.Position
         local absPos = speedSlider.AbsolutePosition
         local size = speedSlider.AbsoluteSize
         local percent = math.clamp((pos.X - absPos.X) / size.X, 0, 1)
         sliderFill.Size = UDim2.new(percent, 0, 1, 0)
-        speedValue = math.round(percent * 99) + 1
-        speedLabel.Text = "Скорость: " .. speedValue
+        flySpeedValue = math.round(percent * 99) + 1
+        speedLabel.Text = "Скорость полёта: " .. flySpeedValue
     end
 end)
 
 userInput.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        draggingSlider = false
+        draggingFly = false
     end
 end)
 
--- Fling вкладка
+-- Ползунок скорости бега (SPEEDHACK)
+local walkSpeedLabel = Instance.new("TextLabel")
+walkSpeedLabel.Size = UDim2.new(0.8,0,0,18)
+walkSpeedLabel.Position = UDim2.new(0.1,0,0.63,0)
+walkSpeedLabel.Text = "Скорость бега: 16"
+walkSpeedLabel.TextSize = 13
+walkSpeedLabel.TextColor3 = Color3.fromRGB(200,200,200)
+walkSpeedLabel.BackgroundTransparency = 1
+walkSpeedLabel.Parent = baseFrame
+
+local walkSpeedSlider = Instance.new("Frame")
+walkSpeedSlider.Size = UDim2.new(0.8,0,0,8)
+walkSpeedSlider.Position = UDim2.new(0.1,0,0.70,0)
+walkSpeedSlider.BackgroundColor3 = Color3.fromRGB(50,50,50)
+walkSpeedSlider.BorderSizePixel = 0
+walkSpeedSlider.Parent = baseFrame
+
+local walkSliderFill = Instance.new("Frame")
+walkSliderFill.Size = UDim2.new(0,0,1,0)
+walkSliderFill.BackgroundColor3 = Color3.fromRGB(100,200,100)
+walkSliderFill.BorderSizePixel = 0
+walkSliderFill.Parent = walkSpeedSlider
+
+local walkSpeedValue = 16
+local draggingWalk = false
+
+walkSpeedSlider.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        draggingWalk = true
+    end
+end)
+
+userInput.InputChanged:Connect(function(input)
+    if not draggingWalk then return end
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        local pos = input.Position
+        local absPos = walkSpeedSlider.AbsolutePosition
+        local size = walkSpeedSlider.AbsoluteSize
+        local percent = math.clamp((pos.X - absPos.X) / size.X, 0, 1)
+        walkSliderFill.Size = UDim2.new(percent, 0, 1, 0)
+        walkSpeedValue = math.floor(16 + percent * 484)
+        walkSpeedLabel.Text = "Скорость бега: " .. walkSpeedValue
+        if speedOn then
+            applySpeed()
+        end
+    end
+end)
+
+userInput.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        draggingWalk = false
+    end
+end)
+
+-- === Вкладка "Fling" ===
 local flingFrame = Instance.new("Frame")
 flingFrame.Size = UDim2.new(1,0,1,0)
 flingFrame.BackgroundTransparency = 1
@@ -188,17 +228,45 @@ stopFlingBtn.TextColor3 = Color3.fromRGB(255,255,255)
 stopFlingBtn.BorderSizePixel = 0
 stopFlingBtn.Parent = flingFrame
 
-local playerList = Instance.new("ScrollingFrame")
-playerList.Size = UDim2.new(0.9,0,0.55,0)
-playerList.Position = UDim2.new(0.05,0,0.25,0)
-playerList.BackgroundColor3 = Color3.fromRGB(20,20,20)
-playerList.BorderSizePixel = 1
-playerList.BorderColor3 = Color3.fromRGB(80,80,80)
-playerList.CanvasSize = UDim2.new(0,0,0,0)
-playerList.ScrollBarThickness = 6
-playerList.Parent = flingFrame
+local playerListFling = Instance.new("ScrollingFrame")
+playerListFling.Size = UDim2.new(0.9,0,0.55,0)
+playerListFling.Position = UDim2.new(0.05,0,0.25,0)
+playerListFling.BackgroundColor3 = Color3.fromRGB(20,20,20)
+playerListFling.BorderSizePixel = 1
+playerListFling.BorderColor3 = Color3.fromRGB(80,80,80)
+playerListFling.CanvasSize = UDim2.new(0,0,0,0)
+playerListFling.ScrollBarThickness = 6
+playerListFling.Parent = flingFrame
 
-local playerButtons = {}
+local playerButtonsFling = {}
+
+-- === Вкладка "Телепорт" ===
+local teleportFrame = Instance.new("Frame")
+teleportFrame.Size = UDim2.new(1,0,1,0)
+teleportFrame.BackgroundTransparency = 1
+teleportFrame.Visible = false
+teleportFrame.Parent = contentContainer
+
+local teleportTitle = Instance.new("TextLabel")
+teleportTitle.Size = UDim2.new(1,0,0,30)
+teleportTitle.Position = UDim2.new(0,0,0,0)
+teleportTitle.Text = "Телепорт к игроку"
+teleportTitle.TextSize = 16
+teleportTitle.TextColor3 = Color3.fromRGB(255,255,255)
+teleportTitle.BackgroundTransparency = 1
+teleportTitle.Parent = teleportFrame
+
+local playerListTeleport = Instance.new("ScrollingFrame")
+playerListTeleport.Size = UDim2.new(0.9,0,0.8,0)
+playerListTeleport.Position = UDim2.new(0.05,0,0.1,0)
+playerListTeleport.BackgroundColor3 = Color3.fromRGB(20,20,20)
+playerListTeleport.BorderSizePixel = 1
+playerListTeleport.BorderColor3 = Color3.fromRGB(80,80,80)
+playerListTeleport.CanvasSize = UDim2.new(0,0,0,0)
+playerListTeleport.ScrollBarThickness = 6
+playerListTeleport.Parent = teleportFrame
+
+local playerButtonsTeleport = {}
 
 -- Состояния
 local noclipOn = false
@@ -212,7 +280,8 @@ local keysPressed = {}
 local savedPosition = nil
 local menuVisible = false
 local flingLoop = nil
-local flingTarget = nil
+local speedOn = false
+local speedLoop = nil -- для постоянного обновления скорости
 
 -- Перетаскивание
 local dragging = false
@@ -232,7 +301,7 @@ local function updateMenuPos()
     local vp = guiService:GetViewportSize()
     local mSize = menu.AbsoluteSize
     if mSize.X == 0 or mSize.Y == 0 then
-        mSize = Vector2.new(280, 380)
+        mSize = Vector2.new(280, 420)
     end
     if x + mSize.X > vp.X then x = vp.X - mSize.X - 5 end
     if y + mSize.Y > vp.Y then y = btnAbs.Y - mSize.Y - 5 end
@@ -247,6 +316,7 @@ local function toggleMenu()
     if menuVisible then
         updateMenuPos()
         updateFlingList()
+        updateTeleportList()
     end
 end
 
@@ -254,19 +324,32 @@ local function switchTab(tab)
     if tab == "base" then
         baseFrame.Visible = true
         flingFrame.Visible = false
+        teleportFrame.Visible = false
         tabBase.BackgroundColor3 = Color3.fromRGB(80,80,80)
         tabFling.BackgroundColor3 = Color3.fromRGB(60,60,60)
-    else
+        tabTeleport.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    elseif tab == "fling" then
         baseFrame.Visible = false
         flingFrame.Visible = true
+        teleportFrame.Visible = false
         tabFling.BackgroundColor3 = Color3.fromRGB(80,80,80)
         tabBase.BackgroundColor3 = Color3.fromRGB(60,60,60)
+        tabTeleport.BackgroundColor3 = Color3.fromRGB(60,60,60)
         updateFlingList()
+    else -- teleport
+        baseFrame.Visible = false
+        flingFrame.Visible = false
+        teleportFrame.Visible = true
+        tabTeleport.BackgroundColor3 = Color3.fromRGB(80,80,80)
+        tabBase.BackgroundColor3 = Color3.fromRGB(60,60,60)
+        tabFling.BackgroundColor3 = Color3.fromRGB(60,60,60)
+        updateTeleportList()
     end
 end
 
 tabBase.MouseButton1Click:Connect(function() switchTab("base") end)
 tabFling.MouseButton1Click:Connect(function() switchTab("fling") end)
+tabTeleport.MouseButton1Click:Connect(function() switchTab("teleport") end)
 
 toggleBtn.MouseButton1Down:Connect(function(x,y)
     dragging = true
@@ -334,7 +417,7 @@ local function toggleNoclip()
 end
 noclipBtn.MouseButton1Click:Connect(toggleNoclip)
 
--- ESP (без изменений)
+-- ESP
 local function updateESP()
     if not espOn then return end
     local char = player.Character
@@ -407,7 +490,7 @@ local function toggleESP()
 end
 espBtn.MouseButton1Click:Connect(toggleESP)
 
--- FLY (как было)
+-- FLY
 local function startFly()
     if flyLoop then return end
     flyLoop = runService.Heartbeat:Connect(function()
@@ -418,7 +501,7 @@ local function startFly()
         if not root then return end
         local hum = char:FindFirstChild("Humanoid")
         if hum then hum.PlatformStand = true end
-        local speed = speedValue * 0.5 + 5
+        local speed = flySpeedValue * 0.5 + 5
         local moveVector = Vector3.new(0,0,0)
         if keysPressed["W"] then moveVector = moveVector + camera.CFrame.LookVector * speed end
         if keysPressed["S"] then moveVector = moveVector - camera.CFrame.LookVector * speed end
@@ -459,6 +542,52 @@ local function toggleFly()
 end
 flyBtn.MouseButton1Click:Connect(toggleFly)
 
+-- SPEEDHACK (исправлен — постоянное обновление в цикле)
+local function applySpeed()
+    local char = player.Character
+    if char then
+        local hum = char:FindFirstChild("Humanoid")
+        if hum then
+            hum.WalkSpeed = (speedOn and walkSpeedValue) or 16
+        end
+    end
+end
+
+local function startSpeedLoop()
+    if speedLoop then return end
+    speedLoop = runService.Heartbeat:Connect(function()
+        if speedOn then
+            applySpeed()
+        end
+    end)
+end
+
+local function stopSpeedLoop()
+    if speedLoop then
+        speedLoop:Disconnect()
+        speedLoop = nil
+    end
+    -- Возвращаем скорость на 16 при выключении
+    applySpeed()
+end
+
+local function toggleSpeed()
+    speedOn = not speedOn
+    if speedOn then
+        speedBtn.Text = "SPEED: ВКЛ"
+        speedBtn.BackgroundColor3 = Color3.fromRGB(50,200,50)
+        startSpeedLoop()
+        applySpeed()
+    else
+        speedBtn.Text = "SPEED: ВЫКЛ"
+        speedBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+        stopSpeedLoop()
+        applySpeed()
+    end
+end
+speedBtn.MouseButton1Click:Connect(toggleSpeed)
+
+-- Клавиши для полёта
 userInput.InputBegan:Connect(function(input, gp)
     if gp then return end
     if input.KeyCode == Enum.KeyCode.W then keysPressed["W"] = true end
@@ -479,104 +608,58 @@ userInput.InputEnded:Connect(function(input, gp)
     if input.KeyCode == Enum.KeyCode.LeftShift then keysPressed["Shift"] = false end
 end)
 
--- === FLING (исправленный, с циклом и отладкой) ===
+-- FLING
 local function startFling(target)
-    if target == player then
-        print("Нельзя флинговать себя")
-        return
-    end
+    if target == player then return end
     local myChar = player.Character
     local tChar = target.Character
-    if not myChar or not tChar then
-        print("Нет персонажа у кого-то")
-        return
-    end
+    if not myChar or not tChar then return end
     local myRoot = myChar:FindFirstChild("HumanoidRootPart")
     local tRoot = tChar:FindFirstChild("HumanoidRootPart")
-    if not myRoot or not tRoot then
-        print("Нет HumanoidRootPart")
-        return
-    end
+    if not myRoot or not tRoot then return end
 
     savedPosition = myRoot.Position
-    print("Флинг к " .. target.Name .. " запущен. Сохранена позиция:", savedPosition)
+    if flingLoop then flingLoop:Disconnect() flingLoop = nil end
 
-    if flingLoop then
-        flingLoop:Disconnect()
-        flingLoop = nil
-    end
-
-    -- Отключаем PlatformStand у цели
     local hum = tChar:FindFirstChild("Humanoid")
-    if hum then
-        hum.PlatformStand = false
-        hum.Sit = false
-    end
+    if hum then hum.PlatformStand = false hum.Sit = false end
 
     local duration = 2.5
     local startTime = os.clock()
-
-    -- Создаём BodyVelocity для обоих (обновляются в цикле)
     local bvMe = Instance.new("BodyVelocity")
-    bvMe.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+    bvMe.MaxForce = Vector3.new(1e9,1e9,1e9)
     bvMe.Parent = myRoot
     debris:AddItem(bvMe, duration + 0.5)
-
     local bvTarget = Instance.new("BodyVelocity")
-    bvTarget.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+    bvTarget.MaxForce = Vector3.new(1e9,1e9,1e9)
     bvTarget.Parent = tRoot
     debris:AddItem(bvTarget, duration + 0.5)
 
     flingLoop = runService.Heartbeat:Connect(function()
         local elapsed = os.clock() - startTime
-        if elapsed > duration then
-            flingLoop:Disconnect()
-            flingLoop = nil
-            print("Флинг завершён")
-            return
-        end
-
-        -- Обновляем ссылки на корни (могут измениться)
+        if elapsed > duration then flingLoop:Disconnect() flingLoop = nil return end
         local myChar2 = player.Character
         local tChar2 = target.Character
-        if not myChar2 or not tChar2 then
-            flingLoop:Disconnect()
-            flingLoop = nil
-            return
-        end
+        if not myChar2 or not tChar2 then flingLoop:Disconnect() flingLoop = nil return end
         local myRoot2 = myChar2:FindFirstChild("HumanoidRootPart")
         local tRoot2 = tChar2:FindFirstChild("HumanoidRootPart")
-        if not myRoot2 or not tRoot2 then
-            flingLoop:Disconnect()
-            flingLoop = nil
-            return
-        end
-
-        -- Вычисляем направление от меня к цели
+        if not myRoot2 or not tRoot2 then flingLoop:Disconnect() flingLoop = nil return end
         local dir = (tRoot2.Position - myRoot2.Position).Unit
         if (tRoot2.Position - myRoot2.Position).Magnitude < 3 then
             dir = Vector3.new(math.random(-1,1), math.random(-1,1), math.random(-1,1)).Unit
         end
-
-        -- Сила растёт со временем
         local speed = 800 + elapsed * 300
         local force = dir * speed + Vector3.new(0, 120, 0)
-
-        -- Применяем к обоим
         myRoot2.Velocity = force
         myRoot2.AssemblyLinearVelocity = force
         bvMe.Velocity = force
-
         tRoot2.Velocity = force
         tRoot2.AssemblyLinearVelocity = force
         bvTarget.Velocity = force
     end)
 
-    -- Дополнительный начальный толчок
     local initialDir = (tRoot.Position - myRoot.Position).Unit
-    if initialDir.Magnitude < 0.1 then
-        initialDir = Vector3.new(0,1,0)
-    end
+    if initialDir.Magnitude < 0.1 then initialDir = Vector3.new(0,1,0) end
     local initialForce = initialDir * 1200 + Vector3.new(0, 200, 0)
     myRoot.Velocity = initialForce
     myRoot.AssemblyLinearVelocity = initialForce
@@ -587,25 +670,14 @@ end
 local function flingAll()
     local target = nil
     for _, plr in ipairs(players:GetPlayers()) do
-        if plr ~= player then
-            target = plr
-            break
-        end
+        if plr ~= player then target = plr break end
     end
-    if target then
-        startFling(target)
-    else
-        print("Нет других игроков")
-    end
+    if target then startFling(target) end
 end
-
 flingAllBtn.MouseButton1Click:Connect(flingAll)
 
 local function stopFling()
-    if flingLoop then
-        flingLoop:Disconnect()
-        flingLoop = nil
-    end
+    if flingLoop then flingLoop:Disconnect() flingLoop = nil end
     for _, plr in ipairs(players:GetPlayers()) do
         local char = plr.Character
         if char then
@@ -627,22 +699,18 @@ local function stopFling()
                 root.CFrame = CFrame.new(savedPosition)
                 root.Velocity = Vector3.new(0,0,0)
                 root.AssemblyLinearVelocity = Vector3.new(0,0,0)
-                print("Возврат на место")
             end
         end
         savedPosition = nil
     end
 end
-
 stopFlingBtn.MouseButton1Click:Connect(stopFling)
 
--- Обновление списка игроков
+-- Обновление списка Fling
 local function updateFlingList()
-    for _, btn in pairs(playerButtons) do
-        btn:Destroy()
-    end
-    playerButtons = {}
-    local list = playerList
+    for _, btn in pairs(playerButtonsFling) do btn:Destroy() end
+    playerButtonsFling = {}
+    local list = playerListFling
     local yPos = 5
     local count = 0
     for _, plr in ipairs(players:GetPlayers()) do
@@ -657,10 +725,9 @@ local function updateFlingList()
             btn.BorderSizePixel = 0
             btn.Parent = list
             btn.MouseButton1Down:Connect(function()
-                print("Нажат игрок:", plr.Name)
                 startFling(plr)
             end)
-            playerButtons[plr] = btn
+            playerButtonsFling[plr] = btn
             yPos = yPos + 32
             count = count + 1
         end
@@ -668,13 +735,65 @@ local function updateFlingList()
     list.CanvasSize = UDim2.new(0, 0, 0, math.max(0, count * 32 + 10))
 end
 
-players.PlayerAdded:Connect(updateFlingList)
-players.PlayerRemoving:Connect(updateFlingList)
+-- Обновление списка Телепорт
+local function updateTeleportList()
+    for _, btn in pairs(playerButtonsTeleport) do btn:Destroy() end
+    playerButtonsTeleport = {}
+    local list = playerListTeleport
+    local yPos = 5
+    local count = 0
+    for _, plr in ipairs(players:GetPlayers()) do
+        if plr ~= player then
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1, -10, 0, 28)
+            btn.Position = UDim2.new(0, 5, 0, yPos)
+            btn.Text = plr.Name
+            btn.TextSize = 14
+            btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+            btn.TextColor3 = Color3.fromRGB(255,255,255)
+            btn.BorderSizePixel = 0
+            btn.Parent = list
+            btn.MouseButton1Down:Connect(function()
+                local char = player.Character
+                if char then
+                    local root = char:FindFirstChild("HumanoidRootPart")
+                    if root then
+                        local targetChar = plr.Character
+                        if targetChar then
+                            local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
+                            if targetRoot then
+                                root.CFrame = targetRoot.CFrame + Vector3.new(0, 3, 0)
+                                print("Телепорт к " .. plr.Name)
+                            end
+                        end
+                    end
+                end
+            end)
+            playerButtonsTeleport[plr] = btn
+            yPos = yPos + 32
+            count = count + 1
+        end
+    end
+    list.CanvasSize = UDim2.new(0, 0, 0, math.max(0, count * 32 + 10))
+end
 
-player.CharacterAdded:Connect(function(char)
-    if noclipOn then applyNoclip(char, true) end
+players.PlayerAdded:Connect(function()
+    updateFlingList()
+    updateTeleportList()
+end)
+players.PlayerRemoving:Connect(function()
+    updateFlingList()
+    updateTeleportList()
 end)
 
+-- Респавн
+player.CharacterAdded:Connect(function(char)
+    task.wait(0.1)
+    if noclipOn then applyNoclip(char, true) end
+    if speedOn then applySpeed() end
+end)
+
+-- Очистка ESP
 players.PlayerRemoving:Connect(function(plr)
     if espObjects[plr] then
         espObjects[plr]:Destroy()
@@ -686,4 +805,5 @@ end)
 menu.Position = UDim2.new(0, 90, 0, 20)
 switchTab("base")
 updateFlingList()
-print("haltura hack загружен. Fling теперь точно работает. Смотри консоль.")
+updateTeleportList()
+print("haltura hack загружен. SpeedHack исправлен, добавлена вкладка Телепорт.")
