@@ -1,4 +1,4 @@
--- haltura hack (полный, с Teleport, исправленным SpeedHack) by SWILL
+-- haltura hack (полный, с Anti-AFK, двумя режимами полёта) by SWILL
 local player = game.Players.LocalPlayer
 local coreGui = game:GetService("CoreGui")
 local players = game:GetService("Players")
@@ -23,7 +23,7 @@ toggleBtn.BorderSizePixel = 0
 toggleBtn.Parent = gui
 
 local menu = Instance.new("Frame")
-menu.Size = UDim2.new(0, 280, 0, 420) -- чуть выше для трёх вкладок
+menu.Size = UDim2.new(0, 280, 0, 460) -- увеличено для новой кнопки
 menu.BackgroundColor3 = Color3.fromRGB(30,30,30)
 menu.BorderSizePixel = 1
 menu.BorderColor3 = Color3.fromRGB(100,100,100)
@@ -40,7 +40,7 @@ title.BackgroundTransparency = 1
 title.Font = Enum.Font.GothamBold
 title.Parent = menu
 
--- Вкладки (теперь три)
+-- Вкладки (три)
 local tabContainer = Instance.new("Frame")
 tabContainer.Size = UDim2.new(1,0,0,30)
 tabContainer.Position = UDim2.new(0,0,0,30)
@@ -64,7 +64,6 @@ local tabBase = createTab("Основа", 0)
 local tabFling = createTab("Fling", 0.333)
 local tabTeleport = createTab("Телепорт", 0.666)
 
--- Контейнер контента
 local contentContainer = Instance.new("Frame")
 contentContainer.Size = UDim2.new(1,0,1,-60)
 contentContainer.Position = UDim2.new(0,0,0,60)
@@ -94,12 +93,14 @@ end
 local noclipBtn = createBaseBtn("NOCLIP: ВЫКЛ", 0.02)
 local espBtn = createBaseBtn("ESP: ВЫКЛ", 0.13)
 local flyBtn = createBaseBtn("FLY: ВЫКЛ", 0.24)
-local speedBtn = createBaseBtn("SPEED: ВЫКЛ", 0.35)
+local flyJumpBtn = createBaseBtn("FLY (BodyVelocity): ВЫКЛ", 0.35)
+local speedBtn = createBaseBtn("SPEED: ВЫКЛ", 0.46)
+local afkBtn = createBaseBtn("ANTI-AFK: ВЫКЛ", 0.57) -- новая кнопка
 
--- Ползунок скорости полёта
+-- Ползунок скорости полёта (сдвинут вниз)
 local speedLabel = Instance.new("TextLabel")
 speedLabel.Size = UDim2.new(0.8,0,0,18)
-speedLabel.Position = UDim2.new(0.1,0,0.47,0)
+speedLabel.Position = UDim2.new(0.1,0,0.66,0)
 speedLabel.Text = "Скорость полёта: 50"
 speedLabel.TextSize = 13
 speedLabel.TextColor3 = Color3.fromRGB(200,200,200)
@@ -108,7 +109,7 @@ speedLabel.Parent = baseFrame
 
 local speedSlider = Instance.new("Frame")
 speedSlider.Size = UDim2.new(0.8,0,0,8)
-speedSlider.Position = UDim2.new(0.1,0,0.54,0)
+speedSlider.Position = UDim2.new(0.1,0,0.73,0)
 speedSlider.BackgroundColor3 = Color3.fromRGB(50,50,50)
 speedSlider.BorderSizePixel = 0
 speedSlider.Parent = baseFrame
@@ -150,7 +151,7 @@ end)
 -- Ползунок скорости бега (SPEEDHACK)
 local walkSpeedLabel = Instance.new("TextLabel")
 walkSpeedLabel.Size = UDim2.new(0.8,0,0,18)
-walkSpeedLabel.Position = UDim2.new(0.1,0,0.63,0)
+walkSpeedLabel.Position = UDim2.new(0.1,0,0.82,0)
 walkSpeedLabel.Text = "Скорость бега: 16"
 walkSpeedLabel.TextSize = 13
 walkSpeedLabel.TextColor3 = Color3.fromRGB(200,200,200)
@@ -159,7 +160,7 @@ walkSpeedLabel.Parent = baseFrame
 
 local walkSpeedSlider = Instance.new("Frame")
 walkSpeedSlider.Size = UDim2.new(0.8,0,0,8)
-walkSpeedSlider.Position = UDim2.new(0.1,0,0.70,0)
+walkSpeedSlider.Position = UDim2.new(0.1,0,0.89,0)
 walkSpeedSlider.BackgroundColor3 = Color3.fromRGB(50,50,50)
 walkSpeedSlider.BorderSizePixel = 0
 walkSpeedSlider.Parent = baseFrame
@@ -276,12 +277,17 @@ local espLoop = nil
 local espObjects = {}
 local flyOn = false
 local flyLoop = nil
+local flyJumpOn = false
+local flyJumpLoop = nil
+local flyJumpBodyVelocity = nil
 local keysPressed = {}
 local savedPosition = nil
 local menuVisible = false
 local flingLoop = nil
 local speedOn = false
-local speedLoop = nil -- для постоянного обновления скорости
+local speedLoop = nil
+local afkOn = false
+local afkThread = nil
 
 -- Перетаскивание
 local dragging = false
@@ -301,7 +307,7 @@ local function updateMenuPos()
     local vp = guiService:GetViewportSize()
     local mSize = menu.AbsoluteSize
     if mSize.X == 0 or mSize.Y == 0 then
-        mSize = Vector2.new(280, 420)
+        mSize = Vector2.new(280, 460)
     end
     if x + mSize.X > vp.X then x = vp.X - mSize.X - 5 end
     if y + mSize.Y > vp.Y then y = btnAbs.Y - mSize.Y - 5 end
@@ -490,7 +496,7 @@ local function toggleESP()
 end
 espBtn.MouseButton1Click:Connect(toggleESP)
 
--- FLY
+-- ===== ОБЫЧНЫЙ ПОЛЁТ (через Velocity) =====
 local function startFly()
     if flyLoop then return end
     flyLoop = runService.Heartbeat:Connect(function()
@@ -531,6 +537,11 @@ end
 local function toggleFly()
     flyOn = not flyOn
     if flyOn then
+        if flyJumpOn then
+            stopFlyJump()
+            flyJumpBtn.Text = "FLY (BodyVelocity): ВЫКЛ"
+            flyJumpBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+        end
         startFly()
         flyBtn.Text = "FLY: ВКЛ"
         flyBtn.BackgroundColor3 = Color3.fromRGB(50,200,50)
@@ -542,7 +553,81 @@ local function toggleFly()
 end
 flyBtn.MouseButton1Click:Connect(toggleFly)
 
--- SPEEDHACK (исправлен — постоянное обновление в цикле)
+-- ===== ПОЛЁТ ЧЕРЕЗ BodyVelocity =====
+local function startFlyJump()
+    if flyJumpLoop then return end
+    local char = player.Character
+    if not char then return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    flyJumpBodyVelocity = Instance.new("BodyVelocity")
+    flyJumpBodyVelocity.MaxForce = Vector3.new(1e6, 1e6, 1e6)
+    flyJumpBodyVelocity.Parent = root
+    flyJumpLoop = runService.Heartbeat:Connect(function()
+        if not flyJumpOn then return end
+        local char2 = player.Character
+        if not char2 then return end
+        local root2 = char2:FindFirstChild("HumanoidRootPart")
+        if not root2 then return end
+        local hum = char2:FindFirstChild("Humanoid")
+        if hum then hum.PlatformStand = true end
+        local speed = flySpeedValue * 1.5 + 5
+        local moveVector = Vector3.new(0,0,0)
+        if userInput:IsKeyDown(Enum.KeyCode.W) then moveVector = moveVector + camera.CFrame.LookVector end
+        if userInput:IsKeyDown(Enum.KeyCode.S) then moveVector = moveVector - camera.CFrame.LookVector end
+        if userInput:IsKeyDown(Enum.KeyCode.A) then moveVector = moveVector - camera.CFrame.RightVector end
+        if userInput:IsKeyDown(Enum.KeyCode.D) then moveVector = moveVector + camera.CFrame.RightVector end
+        if userInput:IsKeyDown(Enum.KeyCode.Space) then moveVector = moveVector + Vector3.new(0, 1, 0) end
+        if userInput:IsKeyDown(Enum.KeyCode.LeftControl) then moveVector = moveVector - Vector3.new(0, 1, 0) end
+        if moveVector.Magnitude > 0 then
+            flyJumpBodyVelocity.Velocity = moveVector.Unit * speed
+        else
+            flyJumpBodyVelocity.Velocity = Vector3.new(0,0,0)
+        end
+    end)
+end
+
+local function stopFlyJump()
+    if flyJumpLoop then
+        flyJumpLoop:Disconnect()
+        flyJumpLoop = nil
+    end
+    if flyJumpBodyVelocity then
+        flyJumpBodyVelocity:Destroy()
+        flyJumpBodyVelocity = nil
+    end
+    local char = player.Character
+    if char then
+        local hum = char:FindFirstChild("Humanoid")
+        if hum then hum.PlatformStand = false end
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if root then
+            root.Velocity = Vector3.new(0,0,0)
+            root.AssemblyLinearVelocity = Vector3.new(0,0,0)
+        end
+    end
+end
+
+local function toggleFlyJump()
+    flyJumpOn = not flyJumpOn
+    if flyJumpOn then
+        if flyOn then
+            stopFly()
+            flyBtn.Text = "FLY: ВЫКЛ"
+            flyBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+        end
+        startFlyJump()
+        flyJumpBtn.Text = "FLY (BodyVelocity): ВКЛ"
+        flyJumpBtn.BackgroundColor3 = Color3.fromRGB(50,200,50)
+    else
+        stopFlyJump()
+        flyJumpBtn.Text = "FLY (BodyVelocity): ВЫКЛ"
+        flyJumpBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+    end
+end
+flyJumpBtn.MouseButton1Click:Connect(toggleFlyJump)
+
+-- SPEEDHACK
 local function applySpeed()
     local char = player.Character
     if char then
@@ -567,7 +652,6 @@ local function stopSpeedLoop()
         speedLoop:Disconnect()
         speedLoop = nil
     end
-    -- Возвращаем скорость на 16 при выключении
     applySpeed()
 end
 
@@ -587,7 +671,30 @@ local function toggleSpeed()
 end
 speedBtn.MouseButton1Click:Connect(toggleSpeed)
 
--- Клавиши для полёта
+-- ===== ANTI-AFK =====
+local function antiAfkLoop()
+    while afkOn do
+        camera.CFrame = camera.CFrame * CFrame.Angles(0, 0.001, 0)
+        task.wait(30)
+    end
+end
+
+local function toggleAfk()
+    afkOn = not afkOn
+    if afkOn then
+        afkBtn.Text = "ANTI-AFK: ВКЛ"
+        afkBtn.BackgroundColor3 = Color3.fromRGB(50,200,50)
+        afkThread = coroutine.wrap(antiAfkLoop)
+        afkThread()
+    else
+        afkBtn.Text = "ANTI-AFK: ВЫКЛ"
+        afkBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+        afkThread = nil
+    end
+end
+afkBtn.MouseButton1Click:Connect(toggleAfk)
+
+-- Клавиши для обычного полёта
 userInput.InputBegan:Connect(function(input, gp)
     if gp then return end
     if input.KeyCode == Enum.KeyCode.W then keysPressed["W"] = true end
@@ -806,4 +913,4 @@ menu.Position = UDim2.new(0, 90, 0, 20)
 switchTab("base")
 updateFlingList()
 updateTeleportList()
-print("haltura hack загружен. SpeedHack исправлен, добавлена вкладка Телепорт.")
+print("haltura hack загружен. Добавлен Anti-AFK.")
